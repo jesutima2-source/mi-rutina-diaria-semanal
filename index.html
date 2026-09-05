@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Rutina Interactiva</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f7f6; display: flex; justify-content: center; padding: 15px; margin: 0; }
+    .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+    h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; font-size: 1.4rem; }
+    
+    /* Selector de días */
+    .day-selector { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+    .day-btn { flex: 1; min-width: 45px; padding: 8px 4px; border: 1px solid #007bff; background: white; color: #007bff; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; text-align: center; }
+    .day-btn.active { background: #007bff; color: white; }
+
+    /* Categorías visuales */
+    .tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; margin-bottom: 3px; display: inline-block; width: fit-content; }
+    .tag-practica { background: #e3f2fd; color: #1565c0; }
+    .tag-clase { background: #fff3e0; color: #e65100; }
+    .tag-gym { background: #e8f5e9; color: #2e7d32; }
+    .tag-tarea { background: #f3e5f5; color: #7b1fa2; }
+    .tag-personal { background: #fbe9e7; color: #d84315; }
+
+    /* Items de la rutina */
+    .task-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 10px; border-radius: 8px; background: #fafafa; border-left: 5px solid #007bff; transition: all 0.2s ease; }
+    .task-info { display: flex; flex-direction: column; flex: 1; margin-right: 10px; }
+    .task-title { font-weight: bold; color: #2c3e50; font-size: 0.95rem; }
+    .task-time { font-size: 0.8rem; color: #7f8c8d; }
+    
+    /* Checkbox */
+    .checkbox-container { display: flex; align-items: center; cursor: pointer; }
+    .checkbox-container input { display: none; }
+    .checkmark { width: 26px; height: 26px; background-color: #eee; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; transition: 0.2s; }
+    .checkbox-container input:checked ~ .checkmark { background-color: #28a745; }
+    .checkbox-container input:checked ~ .checkmark::after { content: '✓'; font-size: 16px; }
+    
+    /* Estado completado */
+    .completed { background: #f1f8e9; border-left-color: #28a745 !important; opacity: 0.75; }
+    .completed .task-title { text-decoration: line-through; color: #6c757d; }
+
+    /* Acciones */
+    .actions { display: flex; justify-content: space-between; margin-top: 20px; align-items: center; }
+    .reset-btn { background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .progress-text { font-size: 0.85rem; font-weight: bold; color: #2c3e50; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Mi Rutina Diaria</h1>
+
+  <div class="day-selector" id="day-selector"></div>
+
+  <div id="rutina-container"></div>
+
+  <div class="actions">
+    <span class="progress-text" id="progress-text">0 / 0 completados</span>
+    <button class="reset-btn" onclick="reiniciarDia()">Reiniciar día</button>
+  </div>
+</div>
+
+<script>
+  const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  
+  // Obtener día actual
+  const hoyIndex = new Date().getDay();
+  let diaSeleccionado = diasSemana[hoyIndex === 0 ? 6 : hoyIndex - 1];
+
+  const rutinasPorDia = {
+    "Lunes": [
+      { id: "L1", cat: "practica", titulo: "Prácticas GORE Junín", hora: "08:00 AM - 12:30 PM", completado: false },
+      { id: "L2", cat: "clase", titulo: "Comunicación de Datos I", hora: "01:00 PM - 03:15 PM", completado: false },
+      { id: "L3", cat: "clase", titulo: "Diseño UX/UI", hora: "04:45 PM - 07:00 PM", completado: false },
+      { id: "L4", cat: "gym", titulo: "Gimnasio", hora: "07:30 PM - 09:30 PM", completado: false },
+      { id: "L5", cat: "tarea", titulo: "Repaso y Tareas Universitarias", hora: "09:45 PM - 11:00 PM", completado: false }
+    ],
+    "Martes": [
+      { id: "M1", cat: "practica", titulo: "Prácticas GORE Junín", hora: "08:00 AM - 01:00 PM", completado: false },
+      { id: "M2", cat: "clase", titulo: "Metodología Des. Software", hora: "01:45 PM - 04:00 PM", completado: false },
+      { id: "M3", cat: "clase", titulo: "Proyecto Dinámica de Sistemas", hora: "04:00 PM - 06:15 PM", completado: false },
+      { id: "M4", cat: "clase", titulo: "Sistemas Operativos para Servidores II", hora: "07:00 PM - 10:00 PM", completado: false },
+      { id: "M5", cat: "personal", titulo: "Día de Descanso del Gym", hora: "Noche", completado: false }
+    ],
+    "Miércoles": [
+      { id: "X1", cat: "practica", titulo: "Prácticas GORE Junín", hora: "08:00 AM - 01:00 PM", completado: false },
+      { id: "X2", cat: "tarea", titulo: "Bloque de Tareas / Avance de Proyectos", hora: "01:30 PM - 03:15 PM", completado: false },
+      { id: "X3", cat: "gym", titulo: "Gimnasio", hora: "03:30 PM - 05:30 PM", completado: false },
+      { id: "X4", cat: "clase", titulo: "Proyecto Dinámica de Sistemas (Práctica)", hora: "06:15 PM - 07:45 PM", completado: false },
+      { id: "X5", cat: "tarea", titulo: "Repaso / Tareas", hora: "08:00 PM - 10:00 PM", completado: false }
+    ],
+    "Jueves": [
+      { id: "J1", cat: "practica", titulo: "Prácticas GORE Junín", hora: "08:00 AM - 12:30 PM", completado: false },
+      { id: "J2", cat: "clase", titulo: "Sistemas Operativos (Teoría y Práctica)", hora: "01:00 PM - 04:00 PM", completado: false },
+      { id: "J3", cat: "gym", titulo: "Gimnasio", hora: "05:00 PM - 07:00 PM", completado: false },
+      { id: "J4", cat: "tarea", titulo: "Avanzar Trabajos / Proyectos de U", hora: "07:30 PM - 10:00 PM", completado: false }
+    ],
+    "Viernes": [
+      { id: "V1", cat: "clase", titulo: "Metodología de la Investigación", hora: "07:00 AM - 10:00 AM", completado: false },
+      { id: "V2", cat: "gym", titulo: "Gimnasio", hora: "10:30 AM - 12:30 PM", completado: false },
+      { id: "V3", cat: "tarea", titulo: "Bloque de Tareas / Almuerzo", hora: "01:00 PM - 03:00 PM", completado: false },
+      { id: "V4", cat: "clase", titulo: "Comunicación de Datos I (Práctica)", hora: "03:15 PM - 04:45 PM", completado: false },
+      { id: "V5", cat: "clase", titulo: "Diseño UX/UI (Práctica)", hora: "07:00 PM - 08:30 PM", completado: false }
+    ],
+    "Sábado": [
+      { id: "S1", cat: "gym", titulo: "Gimnasio (Mañana o Tarde)", hora: "09:00 AM - 11:00 AM / 04:00 PM - 06:00 PM", completado: false },
+      { id: "S2", cat: "personal", titulo: "Lavar ropa y alistarse", hora: "02:30 PM en adelante", completado: false },
+      { id: "S3", cat: "tarea", titulo: "Estudio y Tareas Universitarias", hora: "Libre / Tarde-Noche", completado: false }
+    ],
+    "Domingo": [
+      { id: "D1", cat: "personal", titulo: "Descanso / Tiempo Personal", hora: "Todo el día", completado: false },
+      { id: "D2", cat: "tarea", titulo: "Revisión final de Tareas de la Semana", hora: "04:00 PM - 07:00 PM", completado: false }
+    ]
+  };
+
+  let estadoApp = JSON.parse(localStorage.getItem('miRutinaOrganizada')) || rutinasPorDia;
+
+  const selectorContenedor = document.getElementById('day-selector');
+  const rutinaContenedor = document.getElementById('rutina-container');
+  const progressText = document.getElementById('progress-text');
+
+  function renderizarDias() {
+    selectorContenedor.innerHTML = '';
+    diasSemana.forEach(dia => {
+      const btn = document.createElement('button');
+      btn.className = `day-btn ${dia === diaSeleccionado ? 'active' : ''}`;
+      btn.innerText = dia.substring(0, 3);
+      btn.onclick = () => {
+        diaSeleccionado = dia;
+        renderizarDias();
+        renderizarRutina();
+      };
+      selectorContenedor.appendChild(btn);
+    });
+  }
+
+  function renderizarRutina() {
+    rutinaContenedor.innerHTML = '';
+    const lista = estadoApp[diaSeleccionado] || [];
+    let completados = 0;
+
+    lista.forEach((item, index) => {
+      if (item.completado) completados++;
+
+      const div = document.createElement('div');
+      div.className = `task-item ${item.completado ? 'completed' : ''}`;
+      
+      const borderColors = { practica: '#007bff', clase: '#fd7e14', gym: '#28a745', tarea: '#6f42c1', personal: '#e83e8c' };
+      div.style.borderLeftColor = borderColors[item.cat] || '#007bff';
+
+      div.innerHTML = `
+        <div class="task-info">
+          <span class="tag tag-${item.cat}">${item.cat}</span>
+          <span class="task-title">${item.titulo}</span>
+          <span class="task-time">${item.hora}</span>
+        </div>
+        <label class="checkbox-container">
+          <input type="checkbox" ${item.completado ? 'checked' : ''} onchange="toggleCheck('${diaSeleccionado}', ${index})">
+          <span class="checkmark"></span>
+        </label>
+      `;
+      rutinaContenedor.appendChild(div);
+    });
+
+    progressText.innerText = `${completados} / ${lista.length} completados`;
+  }
+
+  function toggleCheck(dia, index) {
+    estadoApp[dia][index].completado = !estadoApp[dia][index].completado;
+    guardar();
+  }
+
+  function reiniciarDia() {
+    estadoApp[diaSeleccionado].forEach(item => item.completado = false);
+    guardar();
+  }
+
+  function guardar() {
+    localStorage.setItem('miRutinaOrganizada', JSON.stringify(estadoApp));
+    renderizarRutina();
+  }
+
+  renderizarDias();
+  renderizarRutina();
+</script>
+
+</body>
+</html>
