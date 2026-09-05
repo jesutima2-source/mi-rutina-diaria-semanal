@@ -56,31 +56,50 @@
 </div>
 
 <script>
-  // --- SISTEMA DE NOTIFICACIONES ---
+  // --- REGISTRO DE SERVICE WORKER Y NOTIFICACIONES ---
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('Service Worker registrado correctamente', reg))
+      .catch(err => console.error('Error al registrar Service Worker', err));
+  }
+
   if ("Notification" in window) {
     Notification.requestPermission();
   }
 
-  function enviarRecordatorio(titulo, mensaje) {
+  function enviarRecordatorioNativo(titulo, mensaje) {
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(titulo, {
-        body: mensaje,
-        icon: "https://cdn-icons-png.flaticon.com/512/3663/3663335.png"
-      });
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(titulo, {
+            body: mensaje,
+            icon: "https://cdn-icons-png.flaticon.com/512/3663/3663335.png",
+            vibrate: [200, 100, 200]
+          });
+        });
+      } else {
+        new Notification(titulo, { body: mensaje });
+      }
     }
   }
 
-  // Comprobar la hora actual cada 60 segundos para activar notificaciones
+  // Comprobar la hora actual cada 60 segundos
   setInterval(() => {
     const ahora = new Date();
     const horas = ahora.getHours().toString().padStart(2, '0');
     const minutos = ahora.getMinutes().toString().padStart(2, '0');
     const horaActual = `${horas}:${minutos}`;
+    const hoyIndice = ahora.getDay(); // 1 = Lunes, 3 = Miércoles, 4 = Jueves, 5 = Viernes
 
-    // Ejemplo: Alarma para el Gimnasio los Lunes a las 19:30
-    const hoyIndice = ahora.getDay(); // 1 = Lunes
-    if (hoyIndice === 1 && horaActual === "19:30") {
-      enviarRecordatorio("¡Toca Entrenar!", "Es hora de ir al Gym. ¡Evita distracciones!");
+    // Horarios de Entrenamiento
+    if (hoyIndice === 1 && horaActual === "19:15") {
+      enviarRecordatorioNativo("¡Toca Entrenar!", "Mochila lista. Es hora de ir al Gym, evita distracciones.");
+    } else if (hoyIndice === 3 && horaActual === "15:15") {
+      enviarRecordatorioNativo("¡Hora del Gym!", "Alístate para entrenar antes de tu clase nocturna.");
+    } else if (hoyIndice === 4 && horaActual === "16:45") {
+      enviarRecordatorioNativo("¡Hora del Gym!", "Saliendo de la U, directo a entrenar.");
+    } else if (hoyIndice === 5 && horaActual === "10:15") {
+      enviarRecordatorioNativo("¡Sesión de Gym!", "Bloque matutino listo. A entrenar.");
     }
   }, 60000);
 
